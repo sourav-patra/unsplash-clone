@@ -74,6 +74,7 @@ input#search {
   bottom: 0;
   left: 0;
   right: 0;
+  z-index: 10;
   background: rgba(255, 255, 255, 0.8);
 }
 
@@ -94,13 +95,38 @@ input#search {
   grid-template-columns: repeat(var(--columns),1fr);
 }
 .image-container figure {
+  position: relative;
   margin: 0;
   /* width: 30%; */
   margin-top:  var(--column-gutter);
   /* flex-grow: 1; */
 }
 
-.image-container img {
+.image-container figure .overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  cursor: zoom-in;
+  background: rgba(0,0,0, 0.2);
+}
+
+.image-container figure .overlay .like-icon{
+  position: absolute;
+  cursor: pointer;
+  bottom: 20px;
+  left: 20px;
+  height: 28px;
+  z-index: 2;
+}
+
+.image-container figure:hover .overlay {
+  display: block;
+}
+
+.image-container .image {
   width: 100%;
   cursor: pointer;
 }

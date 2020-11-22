@@ -4,7 +4,8 @@ const SCROLL_DEBOUNCE_DELAY = 800;
 const SEARCH_DEBOUNCE_DELAY = 400;
 let initLoad = false;
 const apiKey = 'VWp7hyL--HiYN5tQ5ksVywgLdRhciy2tnJS48fpT-c0';
-const apiStaticUrl = `https://api.unsplash.com/photos/random?client_id=${apiKey}&count=`;
+const mainApi = `https://api.unsplash.com/photos`
+const apiStaticUrl = `${mainApi}/random?client_id=${apiKey}&count=`;
 let apiUrl = `${apiStaticUrl}${IMAGE_COUNT}`;
 const imageContainer = document.getElementById('image-container');
 const noData = document.getElementById('no-data');
@@ -92,6 +93,43 @@ async function fetchImages() {
 }
 
 /**
+ * Add an overlay over the image in the parent 
+ * figure container. It contains the like-unlike button too
+ * @param {*} figure The target container containing the image
+ * @param {*} photo The photo data
+ */
+const renderOverlayInPhoto = (figure, photo) => {
+  const overlayDiv = document.createElement("overlay");
+  overlayDiv.classList.add('overlay');
+  const likeBtn = document.createElement('img');
+  likeBtn.classList.add('like-icon');
+  setAttributes(likeBtn, {
+    src: "assets/pics/like-icon.svg",
+    alt: "Like Icon",
+    id: photo.id
+  });
+  likeBtn.addEventListener('click', () => {
+    // Documentation unclear, does not work
+    // Error - OuAth token is not valid
+    // const response = await fetch(`${mainApi}/${photo.id}/like?client_id=${apiKey}`, {
+    //   method: "post"
+    // });
+    // const data = await response.json();
+    if (photo.liked_by_user) {
+      photo.liked_by_user = false;
+      likeBtn.src = "assets/pics/like-icon.svg";
+    } else {
+      photo.liked_by_user = true;
+      likeBtn.src = "assets/pics/like-filled-icon.svg";
+    }
+  });
+
+  overlayDiv.appendChild(likeBtn);
+  figure.appendChild(overlayDiv);
+
+}
+
+/**
  * Render photos in the UI by creating elements in the DOM
  */
 const renderPhotoInUI = (photo) => {
@@ -99,6 +137,7 @@ const renderPhotoInUI = (photo) => {
   const figure = document.createElement("figure");
   // Create image
   const image = document.createElement("img");
+  image.classList.add('image');
   setAttributes(image, {
     src: photo.urls.regular,
     alt: photo.alt_description || 'N/A',
@@ -109,6 +148,7 @@ const renderPhotoInUI = (photo) => {
   image.addEventListener('load', imageLoaded);
   // Insert image inside <figure>
   figure.appendChild(image);
+  renderOverlayInPhoto(figure, photo);
   return figure;  
 }
 
