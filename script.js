@@ -2,16 +2,23 @@
 const IMAGE_COUNT = 12;
 const SCROLL_DEBOUNCE_DELAY = 800;
 const SEARCH_DEBOUNCE_DELAY = 400;
-let initLoad = false;
 const apiKey = 'VWp7hyL--HiYN5tQ5ksVywgLdRhciy2tnJS48fpT-c0';
 const mainApi = `https://api.unsplash.com/photos`
 const apiStaticUrl = `${mainApi}/random?client_id=${apiKey}&count=`;
 let apiUrl = `${apiStaticUrl}${IMAGE_COUNT}`;
 const imageContainer = document.getElementById('image-container');
 const noData = document.getElementById('no-data');
+
+// Image overlay elements
 const searchInput = document.getElementById('search');
 const searchBtn = document.getElementById('search-icon');
 const removeBtn = document.getElementById('remove-icon');
+
+// Zoomed container elements
+const zoomContainer = document.getElementById('image-zoomed-container');
+const zoomedImage = document.getElementById('zoomed-in-image');
+const closeImageContainer = document.getElementById('close-image-container');
+
 let col1 = document.getElementById('col-1');
 let col2 = document.createElement('div');
 col2.id = 'col-2';
@@ -23,7 +30,6 @@ let fetchedImagesPainted = false; // flag to indicate when all images are painte
 let numberOfImagesLoaded = 0; // counter when matched with imagesArray length, changes the fetchedImagesPainted flag
 let imagesArray = [];
 let gridsPresent = 1;
-let searchQuery;
 
 /**
  * Get the Api Url
@@ -99,16 +105,34 @@ async function fetchImages() {
  * @param {*} photo The photo data
  */
 const renderOverlayInPhoto = (figure, photo) => {
-  const overlayDiv = document.createElement("overlay");
+  const overlayDiv = document.createElement("div");
   overlayDiv.classList.add('overlay');
+
+  // Attach a click listener to the overlay on the image
+  // Clicking any image should open up a full size container containing the 
+  // full view of the image.
+  overlayDiv.addEventListener('click', () => {
+    setAttributes(zoomedImage, {
+      src: photo.urls? photo.urls.full : photo.urls.regular,
+      alt: photo.alt_description || 'N/A',
+      ...(photo.description && { title: photo.description }),
+    });
+    if (zoomContainer.classList.contains('hidden')) {
+      zoomContainer.classList.remove('hidden');
+    }
+    // Hide the scroll bar to prevent user to trigger further image fetching
+    document.getElementsByTagName('body')[0].style.overflow = "hidden";
+  })
   const likeBtn = document.createElement('img');
   likeBtn.classList.add('like-icon');
   setAttributes(likeBtn, {
     src: "assets/pics/like-icon.svg",
     alt: "Like Icon",
+    title: "Like",
     id: photo.id
   });
-  likeBtn.addEventListener('click', () => {
+  likeBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
     // Documentation unclear, does not work
     // Error - OuAth token is not valid
     // const response = await fetch(`${mainApi}/${photo.id}/like?client_id=${apiKey}`, {
@@ -121,6 +145,7 @@ const renderOverlayInPhoto = (figure, photo) => {
     } else {
       photo.liked_by_user = true;
       likeBtn.src = "assets/pics/like-filled-icon.svg";
+      likeBtn.title = "Unlike"
     }
   });
 
@@ -195,6 +220,7 @@ const iterateOverNewPhotos = (imagesList) => {
 
 }
 
+// Basic debounce mechanism
 const debouncedFunction = function(callback, delayTime) {
   let timeOut;
   return function() {
@@ -206,6 +232,8 @@ const debouncedFunction = function(callback, delayTime) {
   }
 }
 
+// Fetch images when scrollbar reaches a certain breakpoint AND
+// ONLY IF all the images are painted
 const scrollerCallback = () => {
   if (fetchedImagesPainted && window.scrollY + window.innerHeight >= document.body.offsetHeight - 1000) {
     fetchedImagesPainted = false;
@@ -331,7 +359,11 @@ const debouncedResize = debouncedFunction(function() {
   }
 }, SCROLL_DEBOUNCE_DELAY);
 
-
+/**
+ * Debounced search input function
+ * @param {*} event input event
+ * @param {*} textFromClick input text value
+ */
 const searchQueryFunction = (event, textFromClick) => {
   const query = textFromClick || (event ? event.target.value: null);
   const defaultUrl = getAPIUrl(IMAGE_COUNT);
@@ -354,7 +386,19 @@ const searchQueryFunction = (event, textFromClick) => {
   fetchImages();
 }
 
+// Debounced function
 const debouncedSearch = debouncedFunction(searchQueryFunction, SEARCH_DEBOUNCE_DELAY);
+
+/**
+ * Hide the zoomed container
+ */
+const hideZoomContainer = () => {
+  zoomedImage.src = null;
+  if (!zoomContainer.classList.contains('hidden')) {
+    zoomContainer.classList.add('hidden');
+  }
+  document.getElementsByTagName('body')[0].style.overflow = "auto";
+}
 
 /**
  * Scroll Event listener
@@ -374,6 +418,8 @@ removeBtn.addEventListener('click', () => {
   searchInput.value = null;
   searchQueryFunction();
 });
+closeImageContainer.addEventListener('click', hideZoomContainer);
+zoomContainer.addEventListener('click', hideZoomContainer);
 createInnerDivs();
 // Start Fetching Images
 fetchImages();
